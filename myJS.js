@@ -1,4 +1,4 @@
-var CanvasWidth =  720;
+var CanvasWidth = 720;
 var CanvasHeight = 900;
 var SPRITE_AIM = 8;
 
@@ -26,22 +26,18 @@ var startAudio;
 
 var isPC;
 $(document).ready(function () {
+  var canvas = document.getElementById("Main");
   isPC = IsPC();
 
-  
+  // Adapt for mobile devices.
+  if (!isPC) {
+    var topDelta = ($(window).height() - CanvasHeight) / 2;
+    canvas.style.top = topDelta + "px";
+  }
   shootAudio = document.getElementById("shoot_audio");
   breakAudio = document.getElementById("break_audio");
   startAudio = document.getElementById("start_audio");
-  
-  var canvas = document.getElementById("Main");
 
-  // Adapt canvas location.
-  console.log(canvas.top);
-   var screenHeight = $(window).height();
-   canvas.style.position = "absolute";
-   canvas.top = (screenHeight - CanvasWidth)/2;
-   console.log(screenHeight);
-  console.log(canvas.top);
 
   canvas.width = CanvasWidth;
   canvas.height = CanvasHeight;
@@ -492,6 +488,7 @@ $(document).ready(function () {
     }
   });
   Q.scene("Start", function (stage) {
+
     if (!localStorage.getItem("best")) {
       localStorage.setItem("best", 0);
     } else {
@@ -500,7 +497,7 @@ $(document).ready(function () {
     var startScene = stage.insert(new Q.startScene());
     var startButton = stage.insert(new Q.startButton());
     var cursor = stage.insert(new Q.cursor());
-   
+
     if (!isPC) {
       cursor.p.asset = "";
     }
@@ -731,8 +728,8 @@ function HandleClickAndTouch(e) {
     }
   }
 }
- //  Adapt mobile devices
- function IsPC() {
+//  Adapt mobile devices
+function IsPC() {
   var userAgentInfo = navigator.userAgent;
   var Agents = ["Android", "iPhone",
     "SymbianOS", "Windows Phone",
