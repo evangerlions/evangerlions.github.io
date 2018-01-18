@@ -24,7 +24,7 @@ var shootAudio;
 var breakAudio;
 var startAudio;
 $(document).ready(function () {
-  
+
   shootAudio = document.getElementById("shoot_audio");
   breakAudio = document.getElementById("break_audio");
   startAudio = document.getElementById("start_audio");
@@ -35,7 +35,6 @@ $(document).ready(function () {
   Q = Quintus()
     .include("Sprites, Scenes, Input, 2D, Touch, UI, Anim")
     .setup('Main')
-    .controls()
     .touch();
   Q.gravityY = 1000;
   Q.input.mouseControls();
@@ -64,8 +63,14 @@ $(document).ready(function () {
         health: 1,
         hasSearched: 0, // Used for connection destroy, prevent search itself.
       });
+      Q.input.on("HandleClickAndTouch",this,"fireWeapon");
       this.add("2d");
+      this.on("touch");
     },
+    touch: function(touch)
+    {
+      HandleClickAndTouch(touch);
+    }
 
   });
   Q.Sprite.extend("grey", {
@@ -215,6 +220,13 @@ $(document).ready(function () {
     },
 
     step: function (dt) {
+      // if in gaming, remove sleep time limit below, make it add faster
+      if (isGaming) {
+        sleepTimeLimit = 0;
+
+      } else {
+        sleepTimeLimit = 0.25;
+      }
       //  handle weapon interval.
       WeaponIntervalNow += dt;
       // end 
@@ -234,15 +246,20 @@ $(document).ready(function () {
       var obj = stage.locate(locationX, locationY, Q.SPRITE_DEFAULT);
       //  If here is no box, add one.
       if (!obj) {
-        var randomA = Math.random() * 20; //  random  between 0-19. 5% Time, 30% default, 10% grey, 30% yellow, 20% red, 5% x.
+        var randomA = Math.random() * 20; //  random  between 0-19. 5% Time, 35% default, 0% grey, 35% yellow, 20% red, 5% x.
         randomA = parseInt(randomA);
         if (randomA == 0) {
           stage.insert(new Q.time({ x: locationX }));
         } else if (randomA >= 1 && randomA <= 6) {
           stage.insert(new Q.defaultBox({ x: locationX }));
-        } else if (randomA >= 7 && randomA <= 8) {
-          stage.insert(new Q.grey({ x: locationX }));
-        } else if (randomA >= 9 && randomA <= 14) {
+        } else if (randomA == 7) {
+
+          //stage.insert(new Q.grey({ x: locationX }));
+          stage.insert(new Q.yellow({ x: locationX }));
+        } else if (randomA == 8) {
+          stage.insert(new Q.defaultBox({ x: locationX }));
+        }
+        else if (randomA >= 9 && randomA <= 14) {
           stage.insert(new Q.yellow({ x: locationX }));
         } else if (randomA >= 15 && randomA <= 18) {
           stage.insert(new Q.red({ x: locationX }));
@@ -304,7 +321,6 @@ $(document).ready(function () {
     step: function (dt) {
       //  Constrain gaming place, prevent add box on two sides of canvas about 2 box width. Now judge box init addition is over or not.
       var stage = Q.stage();
-      // Hardcode.
       // Destroy itself when very right column all hava boxes.
       for (var i = 30; i <= 870; i = i + BOX_HEIGHT) {
         if (!stage.locate(630, i, Q.SPRITE_DEFAULT)) {
@@ -431,7 +447,7 @@ $(document).ready(function () {
 
         startAudio.currentTime = 0;
         startAudio.play();
-        
+
         Q.stageScene("Gaming");
         Q.stageScene("Aim", 1);
         Q.stageScene("UI", 2);
@@ -529,17 +545,17 @@ $(document).ready(function () {
     }));
     // Rank score.
     var rankWord = "Rank: ";
-    if (SCORE < 2000) {
+    if (SCORE < 4000) {
       rankWord += "Bronze";
-    } else if (SCORE < 2500) {
+    } else if (SCORE < 5000) {
       rankWord += "Silver";
-    } else if (SCORE < 3000) {
+    } else if (SCORE < 6000) {
       rankWord += "Gold";
-    } else if (SCORE < 3500) {
+    } else if (SCORE < 7000) {
       rankWord += "Platnum";
-    } else if (SCORE < 4000) {
+    } else if (SCORE < 8000) {
       rankWord += "Diamond";
-    } else if (SCORE < 4500) {
+    } else if (SCORE < 9000) {
       rankWord += "Master";
     } else {
       rankWord += "Challenger";
@@ -570,50 +586,10 @@ $(document).ready(function () {
   });
   // Handle shoot action.
   Q.el.addEventListener('click', function (e) {
-    //   Haven't prepare next shoot.
-    if (WeaponIntervalNow <= WeaponInterval || !isGaming) {
-      return;
-    } else {
-      //  It's time to shoot.
-      WeaponIntervalNow = 0;
-    }
-    //  Locate object where clicked.
-    var x = e.offsetX || e.layerX,
-      y = e.offsetY || e.layerY,
-      stage = Q.stage(0);
-    var stageX = Q.canvasToStageX(x, stage),
-      stageY = Q.canvasToStageY(y, stage);
-
-    //  Prevent shoot up to mask container.      
-    if (stageY < BOX_HEIGHT) {
-      return;
-    }
-    shootAudio.currentTime = 0;
-    shootAudio.play();
-    var obj = stage.locate(stageX, stageY, Q.SPRITE_DEFAULT);
-    //  Draw bullet hole.
-    var hole = Q("hole", 1).first();
-    hole.setLocation(stageX, stageY);
-    if (obj) {
-      //  Exclude floor.
-      if (obj.p.asset != "floor.png") {
-        if (obj.p.boxType == "box") {
-          //  Collection destroy on Boxes.
-          obj.p.health -= 1;
-          if (obj.p.health <= 0) {
-            connectionDestroy(obj, Q);
-          }
-        } else if (obj.p.boxType == "xBox") {
-          SCORE += obj.p.score;  // Execute sup score.
-          obj.destroy();
-        } else if (obj.p.boxType == "timeBox") {
-          currentTime += obj.p.addTime;
-          obj.destroy();
-        } else {
-          //console.log("Error! Unknown boxType of box");
-        }
-      }
-    }
+    HandleClickAndTouch(e);
+  });
+  Q.el.addEventListener('touchstart', function (e) {
+    HandleClickAndTouch(e);
   });
   // If cursor is over the start button, scale it.
   Q.el.addEventListener('mousemove', function (e) {
@@ -642,6 +618,7 @@ $(document).ready(function () {
     }
   });
 });
+
 /// tag used to prevent search it's father. value 0,1,2,3,4
 function connectionDestroy(box, Q) {
   var tempX = box.p.x;
@@ -678,3 +655,58 @@ function connectionDestroy(box, Q) {
 function ChangeScore(obj, score, best) {
   obj.p.label = "Score: " + score + "\nBest: " + best;
 };
+function HandleClickAndTouch(e) {
+ // var canvas = document.getElementById("Main");
+ // console.log(canvas.offsetParent.offsetX);
+ // console.log(e.targetTouches[0].pageX);
+ // console.log(e);
+ // console.log(e.offsetX+" "+ e.offsetY +"layer "+e.layerX+" "+e.layerY);
+  //   Haven't prepare next shoot.
+  if (WeaponIntervalNow <= WeaponInterval || !isGaming) {
+    return;
+  } else {
+    //  It's time to shoot.
+    WeaponIntervalNow = 0;
+  }
+  //  Locate object where clicked.
+  var x = e.offsetX || e.layerX,
+    y = e.offsetY || e.layerY,
+    stage = Q.stage(0);
+  var stageX = Q.canvasToStageX(x, stage),
+    stageY = Q.canvasToStageY(y, stage);
+  if(e.targetTouches)
+  {
+    stageX = e.targetTouches[0].pageX;
+    stageY = e.targetTouches[0].pageY;
+  }
+  //  Prevent shoot up to mask container.      
+  if (stageY < BOX_HEIGHT) {
+    return;
+  }
+  shootAudio.currentTime = 0;
+  shootAudio.play();
+  var obj = stage.locate(stageX, stageY, Q.SPRITE_DEFAULT);
+  //  Draw bullet hole.
+  var hole = Q("hole", 1).first();
+  hole.setLocation(stageX, stageY);
+  if (obj) {
+    //  Exclude floor.
+    if (obj.p.asset != "floor.png") {
+      if (obj.p.boxType == "box") {
+        //  Collection destroy on Boxes.
+        obj.p.health -= 1;
+        if (obj.p.health <= 0) {
+          connectionDestroy(obj, Q);
+        }
+      } else if (obj.p.boxType == "xBox") {
+        SCORE += obj.p.score;  // Execute sup score.
+        obj.destroy();
+      } else if (obj.p.boxType == "timeBox") {
+        currentTime += obj.p.addTime;
+        obj.destroy();
+      } else {
+        //console.log("Error! Unknown boxType of box");
+      }
+    }
+  }
+}
