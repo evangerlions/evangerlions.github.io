@@ -1,4 +1,4 @@
-var CanvasWidth = 720;
+var CanvasWidth =  720;
 var CanvasHeight = 900;
 var SPRITE_AIM = 8;
 
@@ -23,13 +23,26 @@ var isGaming = false;
 var shootAudio;
 var breakAudio;
 var startAudio;
-$(document).ready(function () {
 
+var isPC;
+$(document).ready(function () {
+  isPC = IsPC();
+
+  
   shootAudio = document.getElementById("shoot_audio");
   breakAudio = document.getElementById("break_audio");
   startAudio = document.getElementById("start_audio");
-
+  
   var canvas = document.getElementById("Main");
+
+  // Adapt canvas location.
+  console.log(canvas.top);
+   var screenHeight = $(window).height();
+   canvas.style.position = "absolute";
+   canvas.top = (screenHeight - CanvasWidth)/2;
+   console.log(screenHeight);
+  console.log(canvas.top);
+
   canvas.width = CanvasWidth;
   canvas.height = CanvasHeight;
   Q = Quintus()
@@ -63,12 +76,11 @@ $(document).ready(function () {
         health: 1,
         hasSearched: 0, // Used for connection destroy, prevent search itself.
       });
-      Q.input.on("HandleClickAndTouch",this,"fireWeapon");
+      Q.input.on("HandleClickAndTouch", this, "fireWeapon");
       this.add("2d");
       this.on("touch");
     },
-    touch: function(touch)
-    {
+    touch: function (touch) {
       HandleClickAndTouch(touch);
     }
 
@@ -488,6 +500,10 @@ $(document).ready(function () {
     var startScene = stage.insert(new Q.startScene());
     var startButton = stage.insert(new Q.startButton());
     var cursor = stage.insert(new Q.cursor());
+   
+    if (!isPC) {
+      cursor.p.asset = "";
+    }
     // Q.debug = true;
     // Q.debugFill = true;
   });
@@ -522,7 +538,7 @@ $(document).ready(function () {
     ScoreContainer.fit(20, 60);
     var TimeContainer = stage.insert(new Q.TimeContainer());
     var TimeController = stage.insert(new Q.TimeController(), TimeContainer);
-    TimeContainer.fit(10, 10)
+    TimeContainer.fit(10, 10);
   });
 
   Q.scene("endGame", function (stage) {
@@ -566,6 +582,9 @@ $(document).ready(function () {
     }), container);
     container.fit(50);
     var cursor = stage.insert(new Q.cursor());
+    if (!isPC) {
+      cursor.p.asset = "";
+    }
     button.on("click", function () {
       currentTime = TIME;
       SCORE = 0;
@@ -656,11 +675,11 @@ function ChangeScore(obj, score, best) {
   obj.p.label = "Score: " + score + "\nBest: " + best;
 };
 function HandleClickAndTouch(e) {
- // var canvas = document.getElementById("Main");
- // console.log(canvas.offsetParent.offsetX);
- // console.log(e.targetTouches[0].pageX);
- // console.log(e);
- // console.log(e.offsetX+" "+ e.offsetY +"layer "+e.layerX+" "+e.layerY);
+  // var canvas = document.getElementById("Main");
+  // console.log(canvas.offsetParent.offsetX);
+  // console.log(e.targetTouches[0].pageX);
+  // console.log(e);
+  // console.log(e.offsetX+" "+ e.offsetY +"layer "+e.layerX+" "+e.layerY);
   //   Haven't prepare next shoot.
   if (WeaponIntervalNow <= WeaponInterval || !isGaming) {
     return;
@@ -674,11 +693,13 @@ function HandleClickAndTouch(e) {
     stage = Q.stage(0);
   var stageX = Q.canvasToStageX(x, stage),
     stageY = Q.canvasToStageY(y, stage);
-  if(e.targetTouches)
-  {
-    stageX = e.targetTouches[0].pageX;
-    stageY = e.targetTouches[0].pageY;
+
+  //  Indicate this is a mobile device.
+  if (e.targetTouches) {
+    stageX = Q.inputs['mouseX'];
+    stageY = Q.inputs['mouseY'];
   }
+
   //  Prevent shoot up to mask container.      
   if (stageY < BOX_HEIGHT) {
     return;
@@ -709,4 +730,19 @@ function HandleClickAndTouch(e) {
       }
     }
   }
+}
+ //  Adapt mobile devices
+ function IsPC() {
+  var userAgentInfo = navigator.userAgent;
+  var Agents = ["Android", "iPhone",
+    "SymbianOS", "Windows Phone",
+    "iPad", "iPod"];
+  var flag = true;
+  for (var v = 0; v < Agents.length; v++) {
+    if (userAgentInfo.indexOf(Agents[v]) > 0) {
+      flag = false;
+      break;
+    }
+  }
+  return flag;
 }
